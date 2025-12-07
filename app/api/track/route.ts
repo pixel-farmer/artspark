@@ -13,13 +13,18 @@ function getVisits(): VisitorData[] {
   try {
     const data = readFileSync(VISITS_FILE, "utf-8");
     return JSON.parse(data);
-  } catch {
+  } catch (error) {
+    console.error("Error reading visits file:", error);
     return [];
   }
 }
 
 function saveVisits(visits: VisitorData[]) {
-  writeFileSync(VISITS_FILE, JSON.stringify(visits, null, 2));
+  try {
+    writeFileSync(VISITS_FILE, JSON.stringify(visits, null, 2));
+  } catch (error) {
+    console.error("Error saving visits file:", error);
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -52,19 +57,27 @@ export async function POST(request: NextRequest) {
       isBot: false,
     };
 
-    // Check if this is a unique visitor (same IP + User Agent in last 24 hours)
+    // Check if this is a unique visitor (same IP in last 1 hour instead of 24 hours)
+    // This is less strict to allow more tracking
     const visits = getVisits();
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     
     const isUnique = !visits.some(v => 
       v.ip === visit.ip && 
-      v.userAgent === visit.userAgent &&
-      new Date(v.timestamp) > oneDayAgo
+      new Date(v.timestamp) > oneHourAgo
     );
 
     if (isUnique) {
       visits.push(visit);
       saveVisits(visits);
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log("Visit tracked:", { ip: clientIP, path, os, location });
+      }
+    } else {
+      if (process.env.NODE_ENV === "development") {
+        console.log("Duplicate visit (not tracked):", { ip: clientIP, path });
+      }
     }
 
     return NextResponse.json({ 

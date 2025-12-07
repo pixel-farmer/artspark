@@ -11,6 +11,7 @@ export function middleware(request: NextRequest) {
   // Track the visit asynchronously
   const userAgent = request.headers.get("user-agent") || "";
   const ip = getClientIP(request);
+  const path = request.nextUrl.pathname;
   
   // Fire and forget - don't block the request
   // Use void to explicitly ignore the promise
@@ -22,10 +23,13 @@ export function middleware(request: NextRequest) {
     body: JSON.stringify({
       ip,
       userAgent,
-      path: request.nextUrl.pathname,
+      path,
     }),
-  }).catch(() => {
-    // Silently fail if tracking fails
+  }).catch((error) => {
+    // Log errors in development
+    if (process.env.NODE_ENV === "development") {
+      console.error("Tracking fetch failed:", error);
+    }
   });
 
   return NextResponse.next();

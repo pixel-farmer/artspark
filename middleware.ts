@@ -43,7 +43,7 @@ function getClientIP(request: NextRequest): string {
   const cfConnectingIP = request.headers.get("cf-connecting-ip");
   if (cfConnectingIP) return cfConnectingIP;
   
-  return request.ip || "Unknown";
+  return "Unknown";
 }
 
 export const config = {

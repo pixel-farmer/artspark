@@ -4,8 +4,10 @@ import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { VisitorData } from "@/lib/analytics";
 
-const VISITS_FILE = join(process.cwd(), "data", "visits.json");
-const ALL_VISITS_FILE = join(process.cwd(), "data", "all-visits.json");
+// Use /tmp for Vercel compatibility, fallback to data/ for local dev
+const DATA_DIR = process.env.VERCEL ? "/tmp" : join(process.cwd(), "data");
+const VISITS_FILE = join(DATA_DIR, "visits.json");
+const ALL_VISITS_FILE = join(DATA_DIR, "all-visits.json");
 
 export async function GET() {
   try {

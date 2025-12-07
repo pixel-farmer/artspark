@@ -14,8 +14,9 @@ export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   
   // Fire and forget - don't block the request
-  // Use void to explicitly ignore the promise
-  void fetch(`${request.nextUrl.origin}/api/track`, {
+  const trackUrl = `${request.nextUrl.origin}/api/track`;
+  
+  void fetch(trackUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -25,11 +26,18 @@ export function middleware(request: NextRequest) {
       userAgent,
       path,
     }),
-  }).catch((error) => {
-    // Log errors in development
-    if (process.env.NODE_ENV === "development") {
-      console.error("Tracking fetch failed:", error);
+  })
+  .then(async (response) => {
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Tracking API error:", response.status, text);
+    } else {
+      const data = await response.json();
+      console.log("Tracking successful:", data);
     }
+  })
+  .catch((error) => {
+    console.error("Tracking fetch failed:", error.message, error);
   });
 
   return NextResponse.next();

@@ -6,47 +6,30 @@ import sparksData from "../data/sparks.json";
 type Spark = {
   title: string;
   description: string;
-  theme: string;
-  mood: string;
+  style: string;
+  feeling: string;
 };
 
-const themes = ["Fantasy", "Sci-Fi", "Urban", "Nature", "Cozy", "Abstract", "Mystical"];
-const moods = [
-  "Mysterious",
-  "Playful",
-  "Calm",
-  "Excited",
-  "Lonely",
-  "Nostalgic",
-  "Curious",
-  "Happy",
-  "Anxious",
-  "Sad"
-];
+const styles = ["Urban", "Gothic", "Classic", "Surreal", "Folk"];
+const feelings = ["Chilled", "Pissed", "Blissful", "Stressed"];
 
-// Optional: color mapping for moods
-const moodColors: { [key: string]: string } = {
-  Mysterious: "bg-purple-200",
-  Playful: "bg-pink-200",
-  Calm: "bg-blue-200",
-  Excited: "bg-yellow-200",
-  Lonely: "bg-gray-200",
-  Nostalgic: "bg-orange-200",
-  Curious: "bg-teal-200",
-  Happy: "bg-green-200",
-  Anxious: "bg-red-200",
-  Sad: "bg-indigo-200"
+// Optional: background color mapping based on feeling
+const feelingColors: { [key: string]: string } = {
+  Chilled: "bg-blue-200",
+  Pissed: "bg-red-200",
+  Blissful: "bg-pink-200",
+  Stressed: "bg-yellow-200",
 };
 
 export default function ArtSparkPage() {
-  const [selectedTheme, setSelectedTheme] = useState("Fantasy");
-  const [selectedMood, setSelectedMood] = useState("Mysterious");
+  const [selectedStyle, setSelectedStyle] = useState("Urban");
+  const [selectedFeeling, setSelectedFeeling] = useState("Chilled");
   const [results, setResults] = useState<Spark[]>([]);
   const [hasGenerated, setHasGenerated] = useState(false);
 
   const generateSpark = () => {
     const filtered = sparksData.filter(
-      (spark) => spark.theme === selectedTheme && spark.mood === selectedMood
+      (spark) => spark.style === selectedStyle && spark.feeling === selectedFeeling
     );
 
     setHasGenerated(true);
@@ -57,7 +40,8 @@ export default function ArtSparkPage() {
     }
 
     const shuffled = filtered.sort(() => 0.5 - Math.random());
-     // Show only two sparks at a time
+
+    // Show only two results
     setResults(shuffled.slice(0, 2));
   };
 
@@ -67,38 +51,43 @@ export default function ArtSparkPage() {
         Art Spark Generator
       </h1>
       <p className="text-center text-gray-600 mb-8">
-        Select a Theme and Mood, then generate your spark!
+        Choose a Style and Feeling — then generate your spark!
       </p>
 
       {/* Dropdowns */}
       <div className="flex flex-col md:flex-row justify-center gap-6 mb-8">
         <div>
-          <label className="block mb-2 font-semibold">Theme</label>
+          <label className="block mb-2 font-semibold">Style</label>
           <select
-            value={selectedTheme}
-            onChange={(e) => setSelectedTheme(e.target.value)}
+            value={selectedStyle}
+            onChange={(e) => setSelectedStyle(e.target.value)}
             className="border rounded-lg p-2 w-full md:w-48 focus:outline-none focus:ring-2 focus:ring-purple-400"
           >
-            {themes.map((theme) => (
-              <option key={theme} value={theme}>{theme}</option>
+            {styles.map((style) => (
+              <option key={style} value={style}>
+                {style}
+              </option>
             ))}
           </select>
         </div>
+
         <div>
-          <label className="block mb-2 font-semibold">Mood</label>
+          <label className="block mb-2 font-semibold">Feeling</label>
           <select
-            value={selectedMood}
-            onChange={(e) => setSelectedMood(e.target.value)}
+            value={selectedFeeling}
+            onChange={(e) => setSelectedFeeling(e.target.value)}
             className="border rounded-lg p-2 w-full md:w-48 focus:outline-none focus:ring-2 focus:ring-purple-400"
           >
-            {moods.map((mood) => (
-              <option key={mood} value={mood}>{mood}</option>
+            {feelings.map((feeling) => (
+              <option key={feeling} value={feeling}>
+                {feeling}
+              </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Generate Button */}
+      {/* Button */}
       <div className="text-center mb-10">
         <button
           onClick={generateSpark}
@@ -108,24 +97,26 @@ export default function ArtSparkPage() {
         </button>
       </div>
 
-      {/* Sparks */}
+      {/* Results */}
       <div className="grid gap-8 md:grid-cols-2">
         {results.length > 0 ? (
           results.map((spark, index) => (
             <div
               key={index}
-              className={`p-6 rounded-xl shadow-lg transition transform hover:-translate-y-1 hover:shadow-2xl ${moodColors[spark.mood] || "bg-gray-100"}`}
+              className={`p-6 rounded-xl shadow-lg transition transform hover:-translate-y-1 hover:shadow-2xl ${
+                feelingColors[spark.feeling] || "bg-gray-100"
+              }`}
             >
               <h2 className="text-2xl font-bold mb-3">{spark.title}</h2>
               <p className="text-gray-700">{spark.description}</p>
-              <div className="mt-3 text-sm text-gray-500">
-                Theme: {spark.theme} | Mood: {spark.mood}
+              <div className="mt-3 text-sm text-gray-600">
+                Style: {spark.style} | Feeling: {spark.feeling}
               </div>
             </div>
           ))
         ) : hasGenerated ? (
           <p className="col-span-full text-center text-gray-500">
-            No Sparks Found. Try a different combination of Theme and Mood!
+            No Sparks Found. Try a different Style + Feeling!
           </p>
         ) : null}
       </div>

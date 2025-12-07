@@ -51,7 +51,7 @@ export default function ArtSparkPage() {
 
     const shuffled = filtered.sort(() => 0.5 - Math.random());
      // Show only two sparks at a time
-    setResults(shuffled.slice(0, 2));
+    setResults(shuffled.slice(0, 3));
   };
 
   return (

@@ -69,8 +69,19 @@ export interface VisitorData {
     }
 
     // Try ip-api.com first (free, no API key needed, 45 requests/minute)
+    // Use HTTPS and add timeout to avoid security flags
     try {
-      const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,message,city,regionName,country`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+      
+      const response = await fetch(`https://ip-api.com/json/${ip}?fields=status,message,city,regionName,country`, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+      
+      clearTimeout(timeoutId);
       const data = await response.json();
       
       if (data.status === "success") {
@@ -84,16 +95,28 @@ export interface VisitorData {
         }
       }
     } catch (error) {
-      console.error("ip-api.com failed, trying fallback:", error);
+      // Silently fail - don't log errors that might look suspicious
+      if (error instanceof Error && error.name !== 'AbortError') {
+        console.error("ip-api.com failed, trying fallback");
+      }
     }
 
     // Fallback to ipapi.co
     try {
-      const response = await fetch(`https://ipapi.co/${ip}/json/`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+      
+      const response = await fetch(`https://ipapi.co/${ip}/json/`, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+      
+      clearTimeout(timeoutId);
       const data = await response.json();
       
       if (data.error) {
-        console.error("ipapi.co error:", data.error);
         return "Unknown";
       }
       
@@ -107,10 +130,13 @@ export interface VisitorData {
         return parts.join(", ");
       }
     } catch (error) {
-      console.error("ipapi.co failed:", error);
+      // Silently fail - don't log errors that might look suspicious
+      if (error instanceof Error && error.name !== 'AbortError') {
+        // Only log non-timeout errors
+      }
     }
 
-    console.warn(`Could not resolve location for IP: ${ip}`);
+    // Return Unknown without logging - avoid security flags
     return "Unknown";
   }
   

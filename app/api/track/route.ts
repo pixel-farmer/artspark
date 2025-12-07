@@ -47,7 +47,9 @@ function getAllVisits(): VisitorData[] {
 function saveVisits(visits: VisitorData[]) {
   try {
     writeFileSync(VISITS_FILE, JSON.stringify(visits, null, 2));
-    console.log("Saved visits to:", VISITS_FILE);
+    if (process.env.NODE_ENV === "development") {
+      console.log("Saved visits to:", VISITS_FILE);
+    }
   } catch (error) {
     console.error("Error saving visits file:", error);
     throw error;
@@ -57,7 +59,9 @@ function saveVisits(visits: VisitorData[]) {
 function saveAllVisits(visits: VisitorData[]) {
   try {
     writeFileSync(ALL_VISITS_FILE, JSON.stringify(visits, null, 2));
-    console.log("Saved all visits to:", ALL_VISITS_FILE);
+    if (process.env.NODE_ENV === "development") {
+      console.log("Saved all visits to:", ALL_VISITS_FILE);
+    }
   } catch (error) {
     console.error("Error saving all visits file:", error);
     throw error;
@@ -69,7 +73,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { ip, userAgent, path } = body;
 
-    console.log("Tracking request received:", { ip, path, hasUserAgent: !!userAgent });
+    // Only log in development
+    if (process.env.NODE_ENV === "development") {
+      console.log("Tracking request received:", { ip, path, hasUserAgent: !!userAgent });
+    }
 
     if (!userAgent) {
       return NextResponse.json({ error: "No user agent" }, { status: 400 });
@@ -77,17 +84,21 @@ export async function POST(request: NextRequest) {
 
     // Check if it's a bot
     if (isBot(userAgent)) {
-      console.log("Bot detected, not tracking:", userAgent);
+      if (process.env.NODE_ENV === "development") {
+        console.log("Bot detected, not tracking");
+      }
       return NextResponse.json({ message: "Bot detected, not tracked" });
     }
 
     const os = parseOS(userAgent);
     const clientIP = ip || getClientIP(request.headers);
     
-    console.log("Getting location for IP:", clientIP);
     // Get location (async, but we'll store it)
-    const location = await getLocationFromIP(clientIP);
-    console.log("Location resolved:", location);
+    // Use timeout to prevent hanging if blocked
+    const location = await Promise.race([
+      getLocationFromIP(clientIP),
+      new Promise<string>((resolve) => setTimeout(() => resolve("Unknown"), 5000))
+    ]);
 
     const visit: VisitorData = {
       ip: clientIP,
@@ -104,7 +115,9 @@ export async function POST(request: NextRequest) {
       const allVisits = getAllVisits();
       allVisits.push(visit);
       saveAllVisits(allVisits);
-      console.log("Saved to all visits, total:", allVisits.length);
+      if (process.env.NODE_ENV === "development") {
+        console.log("Saved to all visits, total:", allVisits.length);
+      }
     } catch (error) {
       console.error("Failed to save all visits:", error);
       // Continue anyway
@@ -123,12 +136,16 @@ export async function POST(request: NextRequest) {
       try {
         visits.push(visit);
         saveVisits(visits);
-        console.log("Unique visit saved, total unique:", visits.length);
+        if (process.env.NODE_ENV === "development") {
+          console.log("Unique visit saved, total unique:", visits.length);
+        }
       } catch (error) {
         console.error("Failed to save unique visit:", error);
       }
     } else {
-      console.log("Duplicate visit (not unique)");
+      if (process.env.NODE_ENV === "development") {
+        console.log("Duplicate visit (not unique)");
+      }
     }
 
     return NextResponse.json({ 

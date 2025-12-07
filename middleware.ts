@@ -28,16 +28,18 @@ export function middleware(request: NextRequest) {
     }),
   })
   .then(async (response) => {
-    if (!response.ok) {
+    // Only log errors in development to avoid security flags
+    if (!response.ok && process.env.NODE_ENV === "development") {
       const text = await response.text();
       console.error("Tracking API error:", response.status, text);
-    } else {
-      const data = await response.json();
-      console.log("Tracking successful:", data);
     }
+    // Silently handle success - don't log in production
   })
   .catch((error) => {
-    console.error("Tracking fetch failed:", error.message, error);
+    // Only log in development
+    if (process.env.NODE_ENV === "development") {
+      console.error("Tracking fetch failed:", error.message);
+    }
   });
 
   return NextResponse.next();

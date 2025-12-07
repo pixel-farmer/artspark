@@ -3,6 +3,13 @@
 import { useState } from "react";
 import sparksData from "../data/sparks.json";
 
+type Spark = {
+  title: string;
+  description: string;
+  theme: string;
+  mood: string;
+};
+
 const themes = ["Fantasy", "Sci-Fi", "Urban", "Nature", "Cozy", "Abstract", "Mystical"];
 const moods = [
   "Mysterious",
@@ -34,7 +41,7 @@ const moodColors: { [key: string]: string } = {
 export default function ArtSparkPage() {
   const [selectedTheme, setSelectedTheme] = useState("Fantasy");
   const [selectedMood, setSelectedMood] = useState("Mysterious");
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState<Spark[]>([]);
   const [hasGenerated, setHasGenerated] = useState(false);
 
   const generateSpark = () => {
@@ -51,7 +58,7 @@ export default function ArtSparkPage() {
 
     const shuffled = filtered.sort(() => 0.5 - Math.random());
      // Show only two sparks at a time
-    setResults(shuffled.slice(0, 3));
+    setResults(shuffled.slice(0, 2));
   };
 
   return (

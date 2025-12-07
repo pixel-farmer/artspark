@@ -136,7 +136,7 @@ setArtResults(validArtworks.slice(0, 4));
           <select
             value={selectedStyle}
             onChange={(e) => setSelectedStyle(e.target.value)}
-            className="border rounded-lg p-2 w-full md:w-48 focus:outline-none focus:ring-2 focus:ring-purple-400"
+            className="border rounded-lg p-2 w-full md:w-48 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
           >
             {styles.map((style) => (
               <option key={style} value={style}>
@@ -151,7 +151,7 @@ setArtResults(validArtworks.slice(0, 4));
           <select
             value={selectedFeeling}
             onChange={(e) => setSelectedFeeling(e.target.value)}
-            className="border rounded-lg p-2 w-full md:w-48 focus:outline-none focus:ring-2 focus:ring-purple-400"
+            className="border rounded-lg p-2 w-full md:w-48 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
           >
             {feelings.map((feeling) => (
               <option key={feeling} value={feeling}>

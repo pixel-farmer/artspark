@@ -71,6 +71,9 @@ export default function VisitsPage() {
                   Operating System
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Browser
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Path
                 </th>
               </tr>
@@ -78,7 +81,7 @@ export default function VisitsPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {visits.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                     No visits recorded yet
                   </td>
                 </tr>
@@ -96,6 +99,9 @@ export default function VisitsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       {visit.os}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {visit.browser || "Unknown"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {visit.path}

@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
-import { isBot, parseOS, getLocationFromIP, getClientIP, VisitorData } from "@/lib/analytics";
+import { isBot, parseOS, parseBrowser, getLocationFromIP, getClientIP, VisitorData } from "@/lib/analytics";
 
 // Use /tmp for Vercel compatibility, fallback to data/ for local dev
 const DATA_DIR = process.env.VERCEL ? "/tmp" : join(process.cwd(), "data");
@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     const os = parseOS(userAgent);
+    const browser = parseBrowser(userAgent);
     const clientIP = ip || getClientIP(request.headers);
     
     // Get location (async, but we'll store it)
@@ -104,6 +105,7 @@ export async function POST(request: NextRequest) {
       ip: clientIP,
       userAgent,
       os,
+      browser,
       location,
       timestamp: new Date().toISOString(),
       path: path || "/",

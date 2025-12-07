@@ -4,6 +4,7 @@ export interface VisitorData {
     ip: string;
     userAgent: string;
     os: string;
+    browser: string;
     location: string;
     timestamp: string;
     path: string;
@@ -35,18 +36,168 @@ export interface VisitorData {
     
     const ua = userAgent.toLowerCase();
     
+    // Windows detection (more comprehensive)
     if (ua.includes("windows")) {
-      if (ua.includes("windows nt 10.0")) return "Windows 10/11";
-      if (ua.includes("windows nt 6.3")) return "Windows 8.1";
-      if (ua.includes("windows nt 6.2")) return "Windows 8";
-      if (ua.includes("windows nt 6.1")) return "Windows 7";
+      if (ua.includes("windows nt 10.0") || ua.includes("windows 10")) return "Windows 10/11";
+      if (ua.includes("windows nt 6.3") || ua.includes("windows 8.1")) return "Windows 8.1";
+      if (ua.includes("windows nt 6.2") || ua.includes("windows 8")) return "Windows 8";
+      if (ua.includes("windows nt 6.1") || ua.includes("windows 7")) return "Windows 7";
+      if (ua.includes("windows nt 6.0") || ua.includes("windows vista")) return "Windows Vista";
+      if (ua.includes("windows nt 5.1") || ua.includes("windows xp")) return "Windows XP";
+      if (ua.includes("windows phone")) return "Windows Phone";
       return "Windows";
     }
-    if (ua.includes("mac os x") || ua.includes("macintosh")) return "macOS";
-    if (ua.includes("linux")) return "Linux";
+    
+    // macOS detection (more comprehensive)
+    if (ua.includes("mac os x") || ua.includes("macintosh")) {
+      // Try to extract macOS version
+      const match = ua.match(/mac os x (\d+)[._](\d+)/);
+      if (match) {
+        const major = parseInt(match[1]);
+        const minor = parseInt(match[2]);
+        if (major >= 13) return "macOS Ventura/Sonoma";
+        if (major >= 12) return "macOS Monterey";
+        if (major >= 11) return "macOS Big Sur";
+        if (major >= 10 && minor >= 15) return "macOS Catalina";
+        if (major >= 10 && minor >= 14) return "macOS Mojave";
+      }
+      return "macOS";
+    }
+    
+    // Linux detection
+    if (ua.includes("linux")) {
+      if (ua.includes("ubuntu")) return "Linux (Ubuntu)";
+      if (ua.includes("debian")) return "Linux (Debian)";
+      if (ua.includes("fedora")) return "Linux (Fedora)";
+      if (ua.includes("redhat") || ua.includes("rhel")) return "Linux (Red Hat)";
+      if (ua.includes("centos")) return "Linux (CentOS)";
+      if (ua.includes("suse")) return "Linux (SUSE)";
+      if (ua.includes("android")) return "Android"; // Android is Linux-based
+      return "Linux";
+    }
+    
+    // Mobile OS detection
     if (ua.includes("android")) return "Android";
-    if (ua.includes("iphone") || ua.includes("ipad") || ua.includes("ipod")) return "iOS";
+    if (ua.includes("iphone") || ua.includes("ipad") || ua.includes("ipod")) {
+      // Try to extract iOS version
+      const match = ua.match(/os (\d+)[._](\d+)/);
+      if (match) {
+        const major = parseInt(match[1]);
+        if (major >= 17) return "iOS 17+";
+        if (major >= 16) return "iOS 16";
+        if (major >= 15) return "iOS 15";
+        if (major >= 14) return "iOS 14";
+      }
+      return "iOS";
+    }
+    
+    // Other Unix-like systems
     if (ua.includes("x11")) return "Unix";
+    if (ua.includes("freebsd")) return "FreeBSD";
+    if (ua.includes("openbsd")) return "OpenBSD";
+    if (ua.includes("netbsd")) return "NetBSD";
+    if (ua.includes("chrome os")) return "Chrome OS";
+    
+    // Fallback: try to extract any OS info
+    const osMatch = ua.match(/([a-z]+)\s*\d+[._]\d+/);
+    if (osMatch) {
+      return osMatch[1].charAt(0).toUpperCase() + osMatch[1].slice(1);
+    }
+    
+    return "Unknown";
+  }
+  
+  export function parseBrowser(userAgent: string): string {
+    if (!userAgent) return "Unknown";
+    
+    const ua = userAgent.toLowerCase();
+    
+    // Chrome and Chromium-based browsers (check first before Edge/Samsung)
+    if (ua.includes("edg/")) {
+      // Microsoft Edge (Chromium)
+      const match = ua.match(/edg\/(\d+)/);
+      if (match) return `Edge ${match[1]}`;
+      return "Edge";
+    }
+    
+    if (ua.includes("opr/") || ua.includes("opera")) {
+      // Opera
+      const match = ua.match(/(?:opr|opera)\/(\d+)/);
+      if (match) return `Opera ${match[1]}`;
+      return "Opera";
+    }
+    
+    if (ua.includes("samsungbrowser")) {
+      // Samsung Internet
+      const match = ua.match(/samsungbrowser\/(\d+)/);
+      if (match) return `Samsung Internet ${match[1]}`;
+      return "Samsung Internet";
+    }
+    
+    if (ua.includes("chrome") && !ua.includes("edg") && !ua.includes("opr")) {
+      // Chrome (but not Edge or Opera)
+      const match = ua.match(/chrome\/(\d+)/);
+      if (match) return `Chrome ${match[1]}`;
+      return "Chrome";
+    }
+    
+    // Firefox
+    if (ua.includes("firefox")) {
+      const match = ua.match(/firefox\/(\d+)/);
+      if (match) return `Firefox ${match[1]}`;
+      return "Firefox";
+    }
+    
+    // Safari (check after Chrome since Safari UA contains "chrome")
+    if (ua.includes("safari") && !ua.includes("chrome")) {
+      const match = ua.match(/version\/(\d+)/);
+      if (match) return `Safari ${match[1]}`;
+      return "Safari";
+    }
+    
+    // Internet Explorer / Edge Legacy
+    if (ua.includes("msie") || ua.includes("trident")) {
+      const match = ua.match(/(?:msie |rv:)(\d+)/);
+      if (match) return `Internet Explorer ${match[1]}`;
+      return "Internet Explorer";
+    }
+    
+    // Brave (often identifies as Chrome, but has Brave identifier)
+    if (ua.includes("brave")) {
+      return "Brave";
+    }
+    
+    // Vivaldi
+    if (ua.includes("vivaldi")) {
+      const match = ua.match(/vivaldi\/(\d+)/);
+      if (match) return `Vivaldi ${match[1]}`;
+      return "Vivaldi";
+    }
+    
+    // UC Browser
+    if (ua.includes("ucbrowser")) {
+      const match = ua.match(/ucbrowser\/(\d+)/);
+      if (match) return `UC Browser ${match[1]}`;
+      return "UC Browser";
+    }
+    
+    // Mobile browsers
+    if (ua.includes("safari") && ua.includes("mobile")) {
+      return "Mobile Safari";
+    }
+    
+    if (ua.includes("samsungbrowser")) {
+      return "Samsung Internet";
+    }
+    
+    // Try to extract browser name from user agent
+    const browserMatch = ua.match(/([a-z]+)\/(\d+)/);
+    if (browserMatch) {
+      const browserName = browserMatch[1];
+      if (browserName !== "mozilla" && browserName !== "webkit" && browserName !== "version") {
+        return browserName.charAt(0).toUpperCase() + browserName.slice(1);
+      }
+    }
     
     return "Unknown";
   }

@@ -5,6 +5,7 @@ import { join } from "path";
 import { isBot, parseOS, getLocationFromIP, getClientIP, VisitorData } from "@/lib/analytics";
 
 const VISITS_FILE = join(process.cwd(), "data", "visits.json");
+const ALL_VISITS_FILE = join(process.cwd(), "data", "all-visits.json");
 
 function getVisits(): VisitorData[] {
   if (!existsSync(VISITS_FILE)) {
@@ -19,11 +20,32 @@ function getVisits(): VisitorData[] {
   }
 }
 
+function getAllVisits(): VisitorData[] {
+  if (!existsSync(ALL_VISITS_FILE)) {
+    return [];
+  }
+  try {
+    const data = readFileSync(ALL_VISITS_FILE, "utf-8");
+    return JSON.parse(data);
+  } catch (error) {
+    console.error("Error reading all visits file:", error);
+    return [];
+  }
+}
+
 function saveVisits(visits: VisitorData[]) {
   try {
     writeFileSync(VISITS_FILE, JSON.stringify(visits, null, 2));
   } catch (error) {
     console.error("Error saving visits file:", error);
+  }
+}
+
+function saveAllVisits(visits: VisitorData[]) {
+  try {
+    writeFileSync(ALL_VISITS_FILE, JSON.stringify(visits, null, 2));
+  } catch (error) {
+    console.error("Error saving all visits file:", error);
   }
 }
 
@@ -57,8 +79,12 @@ export async function POST(request: NextRequest) {
       isBot: false,
     };
 
-    // Check if this is a unique visitor (same IP in last 1 hour instead of 24 hours)
-    // This is less strict to allow more tracking
+    // Always save to all visits
+    const allVisits = getAllVisits();
+    allVisits.push(visit);
+    saveAllVisits(allVisits);
+
+    // Check if this is a unique visitor (same IP in last 1 hour)
     const visits = getVisits();
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     
@@ -72,16 +98,16 @@ export async function POST(request: NextRequest) {
       saveVisits(visits);
       
       if (process.env.NODE_ENV === "development") {
-        console.log("Visit tracked:", { ip: clientIP, path, os, location });
+        console.log("Unique visit tracked:", { ip: clientIP, path, os, location });
       }
     } else {
       if (process.env.NODE_ENV === "development") {
-        console.log("Duplicate visit (not tracked):", { ip: clientIP, path });
+        console.log("Duplicate visit (not unique):", { ip: clientIP, path });
       }
     }
 
     return NextResponse.json({ 
-      message: isUnique ? "Visit tracked" : "Duplicate visit (not tracked)",
+      message: isUnique ? "Visit tracked" : "Visit tracked (duplicate)",
       unique: isUnique 
     });
   } catch (error) {

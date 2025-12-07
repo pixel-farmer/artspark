@@ -5,20 +5,37 @@ import { join } from "path";
 import { VisitorData } from "@/lib/analytics";
 
 const VISITS_FILE = join(process.cwd(), "data", "visits.json");
+const ALL_VISITS_FILE = join(process.cwd(), "data", "all-visits.json");
 
 export async function GET() {
   try {
-    if (!existsSync(VISITS_FILE)) {
-      return NextResponse.json([]);
+    let uniqueVisits: VisitorData[] = [];
+    let allVisits: VisitorData[] = [];
+
+    // Read unique visits
+    if (existsSync(VISITS_FILE)) {
+      try {
+        const data = readFileSync(VISITS_FILE, "utf-8");
+        uniqueVisits = JSON.parse(data).filter((v: VisitorData) => !v.isBot);
+      } catch (error) {
+        console.error("Error reading unique visits:", error);
+      }
     }
 
-    const data = readFileSync(VISITS_FILE, "utf-8");
-    const visits: VisitorData[] = JSON.parse(data);
+    // Read all visits
+    if (existsSync(ALL_VISITS_FILE)) {
+      try {
+        const data = readFileSync(ALL_VISITS_FILE, "utf-8");
+        allVisits = JSON.parse(data).filter((v: VisitorData) => !v.isBot);
+      } catch (error) {
+        console.error("Error reading all visits:", error);
+      }
+    }
     
-    // Filter out bots (shouldn't be any, but just in case)
-    const uniqueVisits = visits.filter(v => !v.isBot);
-    
-    return NextResponse.json(uniqueVisits);
+    return NextResponse.json({
+      unique: uniqueVisits,
+      all: allVisits
+    });
   } catch (error) {
     console.error("Error reading visits:", error);
     return NextResponse.json({ error: "Failed to load visits" }, { status: 500 });

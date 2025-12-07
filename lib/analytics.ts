@@ -51,7 +51,7 @@ export interface VisitorData {
     return "Unknown";
   }
   
-  export function getLocationFromIP(ip: string): Promise<string> {
+  export async function getLocationFromIP(ip: string): Promise<string> {
     // Handle localhost IPs
     if (!ip || ip === "Unknown" || 
         ip === "::1" || ip === "127.0.0.1" || 
@@ -65,22 +65,53 @@ export interface VisitorData {
         ip.startsWith("172.26.") || ip.startsWith("172.27.") ||
         ip.startsWith("172.28.") || ip.startsWith("172.29.") ||
         ip.startsWith("172.30.") || ip.startsWith("172.31.")) {
-      return Promise.resolve("Localhost/Development");
+      return "Localhost/Development";
     }
 
-    // Use a free IP geolocation service
-    // ipapi.co allows 1000 requests/day for free
-    return fetch(`https://ipapi.co/${ip}/json/`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) return "Unknown";
+    // Try ip-api.com first (free, no API key needed, 45 requests/minute)
+    try {
+      const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,message,city,regionName,country`);
+      const data = await response.json();
+      
+      if (data.status === "success") {
         const parts = [];
         if (data.city) parts.push(data.city);
-        if (data.region) parts.push(data.region);
-        if (data.country_name) parts.push(data.country_name);
-        return parts.length > 0 ? parts.join(", ") : "Unknown";
-      })
-      .catch(() => "Unknown");
+        if (data.regionName) parts.push(data.regionName);
+        if (data.country) parts.push(data.country);
+        if (parts.length > 0) {
+          console.log(`Location resolved for ${ip}:`, parts.join(", "));
+          return parts.join(", ");
+        }
+      }
+    } catch (error) {
+      console.error("ip-api.com failed, trying fallback:", error);
+    }
+
+    // Fallback to ipapi.co
+    try {
+      const response = await fetch(`https://ipapi.co/${ip}/json/`);
+      const data = await response.json();
+      
+      if (data.error) {
+        console.error("ipapi.co error:", data.error);
+        return "Unknown";
+      }
+      
+      const parts = [];
+      if (data.city) parts.push(data.city);
+      if (data.region) parts.push(data.region);
+      if (data.country_name) parts.push(data.country_name);
+      
+      if (parts.length > 0) {
+        console.log(`Location resolved for ${ip}:`, parts.join(", "));
+        return parts.join(", ");
+      }
+    } catch (error) {
+      console.error("ipapi.co failed:", error);
+    }
+
+    console.warn(`Could not resolve location for IP: ${ip}`);
+    return "Unknown";
   }
   
   export function getClientIP(headers: Headers): string {

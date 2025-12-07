@@ -10,15 +10,39 @@ type Spark = {
   feeling: string;
 };
 
+type Artwork = {
+  id: number;
+  title: string;
+  image_id: string;
+  artist_title?: string; // optional because some works have no artist listed
+};
+
+// Style options
 const styles = ["Urban", "Gothic", "Classic", "Surreal", "Folk"];
+
+// Feeling options
 const feelings = ["Chilled", "Pissed", "Blissful", "Stressed"];
 
-// Optional: background color mapping based on feeling
-const feelingColors: { [key: string]: string } = {
-  Chilled: "bg-blue-200",
-  Pissed: "bg-red-200",
-  Blissful: "bg-pink-200",
-  Stressed: "bg-yellow-200",
+// AIC keyword mapping
+const styleKeywords: Record<string, string[]> = {
+  Urban: ["city", "urban", "street", "modern"],
+  Gothic: ["gothic", "dark", "moody", "medieval"],
+  Classic: ["classical", "renaissance", "portrait", "oil"],
+  Surreal: ["surreal", "dream", "fantasy", "dali"],
+  Folk: [
+    "american folk",
+    "grandma moses",
+    "rural portrait",
+    "village scene",
+    "folk painting"
+  ],
+};
+
+// American Gothic override
+const AMERICAN_GOTHIC = {
+  id: 129884,
+  title: "American Gothic",
+  image_id: "f6d4e180-0a1c-bf64-6938-d0e2b6f18e3d",
 };
 
 export default function ArtSparkPage() {
@@ -26,32 +50,83 @@ export default function ArtSparkPage() {
   const [selectedFeeling, setSelectedFeeling] = useState("Chilled");
   const [results, setResults] = useState<Spark[]>([]);
   const [hasGenerated, setHasGenerated] = useState(false);
+  const [artResults, setArtResults] = useState<Artwork[]>([]);
+  const [loadingArt, setLoadingArt] = useState(false);
 
-  const generateSpark = () => {
+  // Fetch artwork by style
+  async function fetchArt(style: string) {
+    setLoadingArt(true);
+
+    const keywords = styleKeywords[style].join("+");
+
+    const res = await fetch(
+      `https://api.artic.edu/api/v1/artworks/search?q=${keywords}&limit=8&fields=id,title,image_id,artist_title`
+    );    
+
+    const json = await res.json();
+
+// After fetching artwork data:
+let artworks: Artwork[] = (json.data || [])
+  .filter((art: any) => art.image_id && art.image_id.trim() !== "")
+  .map((art: any) => ({
+    id: art.id,
+    title: art.title,
+    image_id: art.image_id,
+    artist_title: art.artist_title || "Unknown Artist",
+  }));
+
+// Then before setting artResults — optionally verify image exists:
+const validArtworks: Artwork[] = [];
+
+for (let art of artworks) {
+  try {
+    // attempt a HEAD request to check if image exists
+    const imageUrl = `https://www.artic.edu/iiif/2/${art.image_id}/full/400,/0/default.jpg`;
+    const head = await fetch(imageUrl, { method: "HEAD" });
+    if (head.ok) {
+      validArtworks.push(art);
+    }
+  } catch (e) {
+    // ignore — this art entry will be dropped
+  }
+}
+
+// Maybe also include forced artwork (if style==Gothic)
+if (style === "Gothic") {
+  validArtworks.unshift(AMERICAN_GOTHIC);
+}
+
+// Then finally pick first N valid ones
+setArtResults(validArtworks.slice(0, 4));
+
+    setArtResults(artworks);
+    setLoadingArt(false);
+  }
+
+  // Generate Spark
+  const generateSpark = async () => {
     const filtered = sparksData.filter(
-      (spark) => spark.style === selectedStyle && spark.feeling === selectedFeeling
+      (spark: Spark) =>
+        spark.style === selectedStyle && spark.feeling === selectedFeeling
     );
 
     setHasGenerated(true);
 
-    if (filtered.length === 0) {
-      setResults([]);
-      return;
-    }
-
     const shuffled = filtered.sort(() => 0.5 - Math.random());
+    setResults(shuffled.slice(0, 2)); // Show only 2 sparks
 
-    // Show only two results
-    setResults(shuffled.slice(0, 2));
+    // fetch artwork
+    fetchArt(selectedStyle);
   };
 
   return (
     <div className="max-w-5xl mx-auto p-6">
       <h1 className="text-4xl font-bold text-center mb-6 text-gradient bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-        Art Spark Generator
+        Art Sparks!
       </h1>
+
       <p className="text-center text-gray-600 mb-8">
-        Choose a Style and Feeling — then generate your spark!
+        Pick a Style and Feeling, then ignite your imagination.
       </p>
 
       {/* Dropdowns */}
@@ -97,28 +172,54 @@ export default function ArtSparkPage() {
         </button>
       </div>
 
-      {/* Results */}
-      <div className="grid gap-8 md:grid-cols-2">
+      {/* Sparks */}
+      <div className="grid gap-8 md:grid-cols-2 mb-12">
         {results.length > 0 ? (
           results.map((spark, index) => (
             <div
               key={index}
-              className={`p-6 rounded-xl shadow-lg transition transform hover:-translate-y-1 hover:shadow-2xl ${
-                feelingColors[spark.feeling] || "bg-gray-100"
-              }`}
+              className="p-6 rounded-xl shadow-lg bg-gray-100 hover:-translate-y-1 hover:shadow-2xl transition"
             >
               <h2 className="text-2xl font-bold mb-3">{spark.title}</h2>
               <p className="text-gray-700">{spark.description}</p>
-              <div className="mt-3 text-sm text-gray-600">
+              <div className="mt-3 text-sm text-gray-500">
                 Style: {spark.style} | Feeling: {spark.feeling}
               </div>
             </div>
           ))
         ) : hasGenerated ? (
           <p className="col-span-full text-center text-gray-500">
-            No Sparks Found. Try a different Style + Feeling!
+            No Sparks Found. Try a different Style + Feeling combo!
           </p>
         ) : null}
+      </div>
+
+      {/* Art from AIC */}
+      <h2 className="text-3xl font-semibold mb-4 text-center">Related Art</h2>
+
+      {loadingArt && (
+        <p className="text-center text-gray-500 mb-6">Loading artwork…</p>
+      )}
+
+      <div className="grid gap-8 md:grid-cols-2">
+        {artResults.map((art) => (
+          <div
+          key={art.id}
+          className="rounded-xl shadow-lg bg-white p-4 flex flex-col items-center"
+        >
+          {art.image_id ? (
+            <img
+              src={`https://www.artic.edu/iiif/2/${art.image_id}/full/400,/0/default.jpg`}
+              alt={art.title}
+              className="rounded-lg mb-2"
+            />
+          ) : (
+            <div className="w-full h-48 bg-gray-200 rounded-lg mb-2"></div>
+          )}
+          <p className="font-semibold text-center">{art.title}</p>
+          <p className="text-sm text-gray-500 text-center">{art.artist_title}</p>
+        </div>
+        ))}
       </div>
     </div>
   );

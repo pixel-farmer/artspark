@@ -7,5 +7,14 @@
     "timestamp": "2025-12-07T14:38:52.035Z",
     "path": "/admin",
     "isBot": false
+  },
+  {
+    "ip": "::1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+    "os": "Windows 10/11",
+    "location": "Localhost/Development",
+    "timestamp": "2025-12-07T18:28:07.448Z",
+    "path": "/",
+    "isBot": false
   }
 ]
